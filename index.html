@@ -2,12 +2,12 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>魔导工坊: 高能过载 (修复版)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="css/style.css">
 </head>
-<body class="h-screen w-screen flex flex-col relative bg-black">
+<body class="h-screen h-[100dvh] w-full flex flex-col relative bg-black">
 
     <!-- 顶部信息栏 -->
     <div class="flex-none h-14 bg-slate-900/90 border-b border-slate-800 flex items-center justify-between px-4 z-20">
@@ -71,7 +71,7 @@
     </div>
 
     <!-- 底部工具栏 -->
-    <div class="flex-none h-24 bg-slate-900 border-t border-slate-800 z-20 flex flex-col pb-safe">
+    <div class="flex-none min-h-[6rem] bg-slate-900 border-t border-slate-800 z-20 flex flex-col pb-[env(safe-area-inset-bottom)]">
         <div class="flex-none px-3 py-1 bg-black/20 text-[10px] text-slate-400 flex justify-between">
             <span>TOOLBOX</span>
             <span id="tool-name" class="text-green-400">选择元件...</span>
