@@ -283,6 +283,9 @@ function updatePhysics() {
             if(c.type === 'vent') c.energy *= 0.8; // 快速排放
 
             // 传输能量 (Push Model)
+            // Maker 不输出能量，只消耗
+            if(c.type === 'maker') continue;
+
             const dir = DIRS[c.rotation];
             const tx = x + dir.x;
             const ty = y + dir.y;
@@ -334,9 +337,9 @@ function updatePhysics() {
             const c = grid[y][x];
             if(c && c.type === 'maker') {
                 c.cooldown--;
-                if(c.energy >= 20 && c.cooldown <= 0) {
-                    c.energy -= 20;
-                    c.cooldown = 60; // 1秒CD
+                if(c.energy >= 25 && c.cooldown <= 0) {
+                    c.energy -= 25;
+                    c.cooldown = 15; // 0.25秒CD (加速消耗防止过载)
                     spawnParticle(x, y, c.rotation);
                 }
             }
@@ -364,8 +367,8 @@ function updatePhysics() {
             if(c) {
                 if(c.type === 'rail' && p.dir === c.rotation) {
                     // 加速
-                    if(c.energy >= 10) {
-                        c.energy -= 10;
+                    if(c.energy >= 25) {
+                        c.energy -= 25;
                         p.speed += 0.5;
                         p.charged = true;
                     }
