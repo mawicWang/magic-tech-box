@@ -24,8 +24,12 @@ The top-left panel shows real-time stats: Generation (GEN), Usage (USE), Recycle
 **操作 (Controls):**
 - **点击/拖拽**: 放置或使用工具。
 - **点击已放置元件**: 旋转元件（部分元件支持）。
-- **运行开关**: 点击右下角闪电图标开始/停止模拟。
+- **运行开关**: 点击右下角闪电图标开始/停止模拟 (快捷键: Space)。
 - **清空**: 点击左下角 CLR 按钮清空地图。
+- **快捷键 (Shortcuts)**:
+    - `1` - `7`: 选择对应工具 (Select Tools)
+    - `X` / `Delete`: 拆除模式 (Eraser)
+    - `Space`: 运行/暂停 (Run/Pause)
 
 ## 🛠️ 技术栈 (Tech Stack)
 
@@ -33,6 +37,7 @@ The top-left panel shows real-time stats: Generation (GEN), Usage (USE), Recycle
 - **Tailwind CSS**: 样式 (CDN)
 - **Vanilla JavaScript**: 游戏逻辑
 - **Canvas API**: 渲染引擎
+- **Web Audio API**: 音效系统 (BGM & SFX)
 
 ## 🚀 运行与部署 (Run & Deploy)
 
@@ -48,4 +53,5 @@ Open `index.html` directly in your browser.
 
 - `index.html`: 游戏入口。
 - `css/style.css`: 样式文件。
-- `js/app.js`: 脚本文件。
+- `js/app.js`: 游戏逻辑。
+- `js/audio.js`: 音频系统。

@@ -15,9 +15,15 @@
             <div class="text-[10px] text-slate-500">SYSTEM</div>
             <div class="text-sm font-bold text-green-400 neon-text">AETHER PHYSICS</div>
         </div>
-        <div class="text-right">
-            <div class="text-[10px] text-slate-500">SCORE</div>
-            <div class="text-xl font-bold text-yellow-400" id="score-display">0</div>
+        <div class="text-right flex items-center gap-4">
+            <!-- Mute Button -->
+            <button id="mute-btn" class="text-slate-500 hover:text-white" onclick="AudioSystem.toggleMute(); document.getElementById('mute-icon').textContent = AudioSystem.isMuted ? '🔇' : '🔊'">
+                <span id="mute-icon">🔊</span>
+            </button>
+            <div>
+                <div class="text-[10px] text-slate-500">SCORE</div>
+                <div class="text-xl font-bold text-yellow-400" id="score-display">0</div>
+            </div>
         </div>
     </div>
 
@@ -30,12 +36,12 @@
         <canvas id="mainCanvas" class="relative z-10"></canvas>
 
         <!-- 运行开关 (右下角) -->
-        <button id="runBtn" onclick="toggleRun()" class="absolute bottom-6 right-6 w-16 h-16 rounded-full bg-slate-800 border-2 border-green-500 shadow-lg shadow-green-900/50 flex items-center justify-center z-20 active:scale-95 transition">
+        <button id="runBtn" onclick="toggleRun()" title="[Space]" class="absolute bottom-6 right-6 w-16 h-16 rounded-full bg-slate-800 border-2 border-green-500 shadow-lg shadow-green-900/50 flex items-center justify-center z-20 active:scale-95 transition">
             <span id="run-icon" class="text-2xl">⚡</span>
         </button>
         
         <!-- 清空按钮 (左下角) -->
-        <button onclick="clearMap()" class="absolute bottom-6 left-6 w-12 h-12 rounded-full bg-slate-900 border border-slate-700 flex items-center justify-center z-20 text-slate-500 active:scale-95">
+        <button id="btn-clear" onclick="clearMap()" class="absolute bottom-6 left-6 w-12 h-12 rounded-full bg-slate-900 border border-slate-700 flex items-center justify-center z-20 text-slate-500 active:scale-95">
             <span class="text-xs">CLR</span>
         </button>
 
@@ -75,19 +81,19 @@
             <!-- 抽取泵 -->
             <button onclick="selectTool('extractor', '抽取泵: 放置在高亮区域抽取能量')" id="btn-extractor" class="tool-btn flex-none w-14 h-14 rounded flex flex-col items-center justify-center gap-1 active">
                 <div class="w-3 h-3 bg-green-500 shadow-[0_0_8px_#4ade80]"></div>
-                <span class="text-[9px] text-slate-300">抽取</span>
+                <span class="text-[9px] text-slate-300">抽取 [1]</span>
             </button>
             
             <!-- 传输线 -->
             <button onclick="selectTool('wire', '超导线: 传输能量')" id="btn-wire" class="tool-btn flex-none w-14 h-14 rounded flex flex-col items-center justify-center gap-1">
                 <div class="w-6 h-0.5 bg-green-500"></div>
-                <span class="text-[9px] text-slate-300">导线</span>
+                <span class="text-[9px] text-slate-300">导线 [2]</span>
             </button>
 
             <!-- 电池/电容 -->
             <button onclick="selectTool('battery', '电容堆: 储存大量能量 (防过载缓冲)')" id="btn-battery" class="tool-btn flex-none w-14 h-14 rounded flex flex-col items-center justify-center gap-1">
                 <div class="w-3 h-4 border border-green-500"></div>
-                <span class="text-[9px] text-slate-300">电容</span>
+                <span class="text-[9px] text-slate-300">电容 [3]</span>
             </button>
 
             <!-- 排气阀 -->
@@ -95,7 +101,7 @@
                 <div class="flex gap-0.5">
                     <div class="w-0.5 h-3 bg-slate-400"></div><div class="w-0.5 h-3 bg-slate-400"></div><div class="w-0.5 h-3 bg-slate-400"></div>
                 </div>
-                <span class="text-[9px] text-slate-300">排气</span>
+                <span class="text-[9px] text-slate-300">排气 [4]</span>
             </button>
             
             <div class="w-px h-8 bg-slate-700 mx-1"></div>
@@ -103,32 +109,33 @@
             <!-- 物质生成器 -->
             <button onclick="selectTool('maker', '物质发生器: 消耗能量制造粒子')" id="btn-maker" class="tool-btn flex-none w-14 h-14 rounded flex flex-col items-center justify-center gap-1">
                 <div class="w-3 h-3 rounded-full bg-white"></div>
-                <span class="text-[9px] text-slate-300">发生器</span>
+                <span class="text-[9px] text-slate-300">发生器 [5]</span>
             </button>
 
             <!-- 磁轨 -->
             <button onclick="selectTool('rail', '磁轨: 消耗能量加速粒子')" id="btn-rail" class="tool-btn flex-none w-14 h-14 rounded flex flex-col items-center justify-center gap-1">
                 <div class="text-[10px] text-yellow-500 font-bold">>>></div>
-                <span class="text-[9px] text-slate-300">磁轨</span>
+                <span class="text-[9px] text-slate-300">磁轨 [6]</span>
             </button>
             
             <!-- 发射口 -->
             <button onclick="selectTool('emitter', '发射终端: 粒子的终点')" id="btn-emitter" class="tool-btn flex-none w-14 h-14 rounded flex flex-col items-center justify-center gap-1">
                 <div class="w-3 h-3 border border-yellow-500"></div>
-                <span class="text-[9px] text-slate-300">终端</span>
+                <span class="text-[9px] text-slate-300">终端 [7]</span>
             </button>
 
             <div class="w-px h-8 bg-slate-700 mx-1"></div>
 
             <!-- 拆除 -->
             <button onclick="selectTool('eraser', '拆除元件')" id="btn-eraser" class="tool-btn flex-none w-14 h-14 rounded flex flex-col items-center justify-center gap-1 text-red-500">
-                <span class="text-xl font-bold">×</span>
+                <span class="text-xl font-bold">× [X]</span>
             </button>
             
             <div class="w-4 flex-none"></div>
         </div>
     </div>
 
+    <script src="js/audio.js"></script>
     <script src="js/app.js"></script>
 </body>
 </html>
