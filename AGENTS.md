@@ -11,10 +11,12 @@
 - **Canvas API**: 渲染引擎
 
 ## 文件结构 (File Structure)
-- `index.html`: 包含所有游戏逻辑、样式和标记的单文件应用。
+- `index.html`: 游戏入口 (HTML)。
+- `css/style.css`: 游戏样式。
+- `js/app.js`: 游戏逻辑。
 
 ## 开发指南 (Guidelines)
-1. **单文件结构**: 保持 `index.html` 的完整性，除非另有说明，否则不要拆分 CSS 或 JS 文件，以便于携带和部署。
+1. **模块化结构**: 项目已重构为分离的 HTML/CSS/JS 结构。
 2. **移动端适配**: 游戏设计为支持触摸操作，请确保 `touch-action: none` 等属性保留。
 3. **Canvas 渲染**: 使用 `pixelated` 渲染模式保持复古风格。
 

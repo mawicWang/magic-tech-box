@@ -42,5 +42,6 @@ Open `index.html` directly in your browser.
 
 ## 📂 文件结构 (Structure)
 
-本项目为单文件应用 (Single File Application)。
-- `index.html`: 包含所有逻辑、样式和资源。
+- `index.html`: 游戏入口。
+- `css/style.css`: 样式文件。
+- `js/app.js`: 脚本文件。
