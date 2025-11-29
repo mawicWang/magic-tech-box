@@ -29,6 +29,7 @@ A browser-based puzzle game involving energy physics simulation. Build energy tr
 - **Tailwind CSS**: 样式 (CDN)
 - **Vanilla JavaScript**: 游戏逻辑
 - **Canvas API**: 渲染引擎
+- **Web Audio API**: 音效系统 (BGM & SFX)
 
 ## 🚀 运行与部署 (Run & Deploy)
 
@@ -44,4 +45,5 @@ Open `index.html` directly in your browser.
 
 - `index.html`: 游戏入口。
 - `css/style.css`: 样式文件。
-- `js/app.js`: 脚本文件。
+- `js/app.js`: 游戏逻辑。
+- `js/audio.js`: 音频系统。
