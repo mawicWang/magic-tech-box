@@ -20,8 +20,12 @@ A browser-based puzzle game involving energy physics simulation. Build energy tr
 **操作 (Controls):**
 - **点击/拖拽**: 放置或使用工具。
 - **点击已放置元件**: 旋转元件（部分元件支持）。
-- **运行开关**: 点击右下角闪电图标开始/停止模拟。
+- **运行开关**: 点击右下角闪电图标开始/停止模拟 (快捷键: Space)。
 - **清空**: 点击左下角 CLR 按钮清空地图。
+- **快捷键 (Shortcuts)**:
+    - `1` - `7`: 选择对应工具 (Select Tools)
+    - `X` / `Delete`: 拆除模式 (Eraser)
+    - `Space`: 运行/暂停 (Run/Pause)
 
 ## 🛠️ 技术栈 (Tech Stack)
 

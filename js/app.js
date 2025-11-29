@@ -93,6 +93,29 @@ function init() {
     window.addEventListener('resize', handleResize);
     handleResize(); // 立即计算一次
 
+    // 键盘快捷键
+    window.addEventListener('keydown', e => {
+        if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+
+        switch(e.key.toLowerCase()) {
+            case '1': document.getElementById('btn-extractor').click(); break;
+            case '2': document.getElementById('btn-wire').click(); break;
+            case '3': document.getElementById('btn-battery').click(); break;
+            case '4': document.getElementById('btn-vent').click(); break;
+            case '5': document.getElementById('btn-maker').click(); break;
+            case '6': document.getElementById('btn-rail').click(); break;
+            case '7': document.getElementById('btn-emitter').click(); break;
+            case 'x':
+            case 'delete':
+                document.getElementById('btn-eraser').click();
+                break;
+            case ' ':
+                e.preventDefault();
+                toggleRun();
+                break;
+        }
+    });
+
     selectTool('extractor', '抽取泵: 放置在高亮区域');
     requestAnimationFrame(gameLoop);
 }
