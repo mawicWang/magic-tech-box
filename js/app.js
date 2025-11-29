@@ -19,6 +19,10 @@ let ambientMap = []; // 环境能量分布
 let particles = []; // 粒子系统
 let effects = []; // 爆炸特效
 
+// 统计数据
+let currentStats = { gen:0, use:0, vent:0 };
+let statTimer = 0;
+
 let currentTool = 'extractor';
 let isRunning = false;
 let score = 0;
@@ -275,12 +279,18 @@ function updatePhysics() {
                 // 效率取决于背景能量
                 const ambient = ambientMap[y][x];
                 if(c.energy < c.maxEnergy) {
-                    c.energy += (ambient / 100) * 1.5;
+                    let amount = (ambient / 100) * 1.5;
+                    c.energy += amount;
+                    currentStats.gen += amount;
                 }
             }
 
             // 消耗能量
-            if(c.type === 'vent') c.energy *= 0.8; // 快速排放
+            if(c.type === 'vent') {
+                let lost = c.energy * 0.2;
+                c.energy *= 0.8; // 快速排放
+                currentStats.vent += lost;
+            }
 
             // 传输能量 (Push Model)
             const dir = DIRS[c.rotation];
@@ -327,6 +337,14 @@ function updatePhysics() {
     if(dangerLevel > 0) alertLayer.className = "absolute inset-0 pointer-events-none z-30 bg-red-500/10 animate-pulse";
     else alertLayer.className = "absolute inset-0 pointer-events-none z-30";
 
+    // 更新统计 UI (每60帧 ~1秒)
+    statTimer++;
+    if(statTimer >= 60) {
+        updateStatsUI();
+        statTimer = 0;
+        currentStats = { gen:0, use:0, vent:0 };
+    }
+
     // 2. 粒子模拟 (物质)
     // 生成
     for(let y=0; y<GRID_SIZE; y++) {
@@ -336,6 +354,7 @@ function updatePhysics() {
                 c.cooldown--;
                 if(c.energy >= 20 && c.cooldown <= 0) {
                     c.energy -= 20;
+                    currentStats.use += 20;
                     c.cooldown = 60; // 1秒CD
                     spawnParticle(x, y, c.rotation);
                 }
@@ -366,6 +385,7 @@ function updatePhysics() {
                     // 加速
                     if(c.energy >= 10) {
                         c.energy -= 10;
+                        currentStats.use += 10;
                         p.speed += 0.5;
                         p.charged = true;
                     }
@@ -674,6 +694,31 @@ function drawItem(x, y, c) {
 }
 
 // --- 工具函数 ---
+function updateStatsUI() {
+    const gen = currentStats.gen;
+    const use = currentStats.use;
+    const vent = currentStats.vent;
+
+    document.getElementById('stat-gen').innerText = '+' + gen.toFixed(1) + '/s';
+    document.getElementById('stat-use').innerText = '-' + use.toFixed(1) + '/s';
+    document.getElementById('stat-vent').innerText = '-' + vent.toFixed(1) + '/s';
+
+    let eff = 0;
+    if(gen > 0.1) {
+        eff = (use / gen) * 100;
+    } else if (use > 0) {
+        eff = 100; // 只有消耗没有生成，视为消耗库存，暂时定为100%有效
+    }
+
+    const elEff = document.getElementById('stat-eff');
+    elEff.innerText = eff.toFixed(0) + '%';
+
+    // Color coding
+    if(eff > 80) elEff.className = "font-mono font-bold text-green-400";
+    else if(eff > 40) elEff.className = "font-mono font-bold text-yellow-400";
+    else elEff.className = "font-mono font-bold text-red-400";
+}
+
 function selectTool(t, desc) {
     currentTool = t;
     document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));

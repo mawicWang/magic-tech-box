@@ -8,6 +8,10 @@ A browser-based puzzle game involving energy physics simulation. Build energy tr
 
 目标：构建稳定的能量网络，制造粒子并将其射入发射终端以获取分数。
 
+**统计系统 (Statistics):**
+游戏左上角实时显示能量生成 (GEN)、消耗 (USE)、排放 (REC) 及系统效能 (EFFICIENCY)，帮助工程师优化工坊效率。
+The top-left panel shows real-time stats: Generation (GEN), Usage (USE), Recycled/Vented (REC), and System Efficiency.
+
 **主要元件 (Tools):**
 - **抽取泵 (Extractor)**: 放置在高亮区域抽取环境能量。
 - **超导线 (Wire)**: 传输能量。
