@@ -152,6 +152,10 @@ mainCanvas.addEventListener('pointerdown', e => {
     updateRect(); // 确保坐标准确
     mainCanvas.setPointerCapture(e.pointerId);
 
+    if (window.AudioSystem && !window.AudioSystem.initialized) {
+        window.AudioSystem.init();
+    }
+
     inputState.isDown = true;
     handleInput(e.clientX, e.clientY, true);
 });
@@ -203,7 +207,10 @@ function applyTool(x, y, isClick) {
 
     // 拆除
     if(currentTool === 'eraser') {
-        grid[y][x] = null;
+        if(grid[y][x]) {
+            grid[y][x] = null;
+            if(window.AudioSystem) window.AudioSystem.playSFX('delete');
+        }
         return;
     }
 
@@ -212,6 +219,7 @@ function applyTool(x, y, isClick) {
         // 如果是点击且类型相同 -> 旋转
         if(isClick && cell.type === currentTool) {
             cell.rotation = (cell.rotation + 1) % 4;
+            if(window.AudioSystem) window.AudioSystem.playSFX('rotate');
         }
         // 如果类型不同，且是点击 -> 覆盖 (拖拽时不覆盖，防止误操作)
         else if (isClick && cell.type !== currentTool) {
@@ -224,6 +232,7 @@ function applyTool(x, y, isClick) {
 }
 
 function placeComponent(x, y) {
+    if(window.AudioSystem) window.AudioSystem.playSFX('place');
     // 创建组件数据结构
     grid[y][x] = {
         type: currentTool,
@@ -368,6 +377,7 @@ function updatePhysics() {
                         c.energy -= 10;
                         p.speed += 0.5;
                         p.charged = true;
+                        if(window.AudioSystem) window.AudioSystem.playSFX('boost');
                     }
                 } else if (c.type === 'emitter' && p.dir === c.rotation) {
                     // 得分
@@ -376,6 +386,7 @@ function updatePhysics() {
                     particles.splice(i, 1);
                     // 特效
                     effects.push({x:p.x, y:p.y, life:1, color:'#fbbf24'});
+                    if(window.AudioSystem) window.AudioSystem.playSFX('score');
                     continue;
                 }
             } else {
@@ -387,6 +398,7 @@ function updatePhysics() {
 }
 
 function explode(x, y) {
+    if(window.AudioSystem) window.AudioSystem.playSFX('explode');
     grid[y][x] = null; // 移除元件
     effects.push({x, y, life:1, color:'#ef4444'});
     // 震动
@@ -395,6 +407,7 @@ function explode(x, y) {
 }
 
 function spawnParticle(x, y, dir) {
+    if(window.AudioSystem) window.AudioSystem.playSFX('spawn');
     particles.push({x, y, dir, progress:0, speed:1, charged:false});
 }
 
@@ -675,6 +688,7 @@ function drawItem(x, y, c) {
 
 // --- 工具函数 ---
 function selectTool(t, desc) {
+    if(window.AudioSystem) window.AudioSystem.playSFX('click');
     currentTool = t;
     document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
     document.getElementById('btn-'+t).classList.add('active');
@@ -682,6 +696,7 @@ function selectTool(t, desc) {
 }
 
 function toggleRun() {
+    if(window.AudioSystem) window.AudioSystem.playSFX('click');
     isRunning = !isRunning;
     const btn = document.getElementById('runBtn');
     if(isRunning) {
@@ -695,6 +710,7 @@ function toggleRun() {
 }
 
 function clearMap() {
+    if(window.AudioSystem) window.AudioSystem.playSFX('click');
     grid = grid.map(r => r.map(()=>null));
     particles = [];
     effects = [];
