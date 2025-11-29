@@ -19,6 +19,10 @@ let ambientMap = []; // 环境能量分布
 let particles = []; // 粒子系统
 let effects = []; // 爆炸特效
 
+// 统计数据
+let currentStats = { gen:0, use:0, vent:0 };
+let statTimer = 0;
+
 let currentTool = 'extractor';
 let isRunning = false;
 let score = 0;
@@ -93,6 +97,29 @@ function init() {
     window.addEventListener('resize', handleResize);
     handleResize(); // 立即计算一次
 
+    // 键盘快捷键
+    window.addEventListener('keydown', e => {
+        if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+
+        switch(e.key.toLowerCase()) {
+            case '1': document.getElementById('btn-extractor').click(); break;
+            case '2': document.getElementById('btn-wire').click(); break;
+            case '3': document.getElementById('btn-battery').click(); break;
+            case '4': document.getElementById('btn-vent').click(); break;
+            case '5': document.getElementById('btn-maker').click(); break;
+            case '6': document.getElementById('btn-rail').click(); break;
+            case '7': document.getElementById('btn-emitter').click(); break;
+            case 'x':
+            case 'delete':
+                document.getElementById('btn-eraser').click();
+                break;
+            case ' ':
+                e.preventDefault();
+                toggleRun();
+                break;
+        }
+    });
+
     selectTool('extractor', '抽取泵: 放置在高亮区域');
     requestAnimationFrame(gameLoop);
 }
@@ -152,6 +179,10 @@ mainCanvas.addEventListener('pointerdown', e => {
     updateRect(); // 确保坐标准确
     mainCanvas.setPointerCapture(e.pointerId);
 
+    if (window.AudioSystem && !window.AudioSystem.initialized) {
+        window.AudioSystem.init();
+    }
+
     inputState.isDown = true;
     handleInput(e.clientX, e.clientY, true);
 });
@@ -203,7 +234,10 @@ function applyTool(x, y, isClick) {
 
     // 拆除
     if(currentTool === 'eraser') {
-        grid[y][x] = null;
+        if(grid[y][x]) {
+            grid[y][x] = null;
+            if(window.AudioSystem) window.AudioSystem.playSFX('delete');
+        }
         return;
     }
 
@@ -212,6 +246,7 @@ function applyTool(x, y, isClick) {
         // 如果是点击且类型相同 -> 旋转
         if(isClick && cell.type === currentTool) {
             cell.rotation = (cell.rotation + 1) % 4;
+            if(window.AudioSystem) window.AudioSystem.playSFX('rotate');
         }
         // 如果类型不同，且是点击 -> 覆盖 (拖拽时不覆盖，防止误操作)
         else if (isClick && cell.type !== currentTool) {
@@ -224,6 +259,7 @@ function applyTool(x, y, isClick) {
 }
 
 function placeComponent(x, y) {
+    if(window.AudioSystem) window.AudioSystem.playSFX('place');
     // 创建组件数据结构
     grid[y][x] = {
         type: currentTool,
@@ -275,12 +311,18 @@ function updatePhysics() {
                 // 效率取决于背景能量
                 const ambient = ambientMap[y][x];
                 if(c.energy < c.maxEnergy) {
-                    c.energy += (ambient / 100) * 1.5;
+                    let amount = (ambient / 100) * 1.5;
+                    c.energy += amount;
+                    currentStats.gen += amount;
                 }
             }
 
             // 消耗能量
-            if(c.type === 'vent') c.energy *= 0.8; // 快速排放
+            if(c.type === 'vent') {
+                let lost = c.energy * 0.2;
+                c.energy *= 0.8; // 快速排放
+                currentStats.vent += lost;
+            }
 
             // 传输能量 (Push Model)
             // Maker 不输出能量，只消耗
@@ -330,6 +372,14 @@ function updatePhysics() {
     if(dangerLevel > 0) alertLayer.className = "absolute inset-0 pointer-events-none z-30 bg-red-500/10 animate-pulse";
     else alertLayer.className = "absolute inset-0 pointer-events-none z-30";
 
+    // 更新统计 UI (每60帧 ~1秒)
+    statTimer++;
+    if(statTimer >= 60) {
+        updateStatsUI();
+        statTimer = 0;
+        currentStats = { gen:0, use:0, vent:0 };
+    }
+
     // 2. 粒子模拟 (物质)
     // 生成
     for(let y=0; y<GRID_SIZE; y++) {
@@ -339,6 +389,7 @@ function updatePhysics() {
                 c.cooldown--;
                 if(c.energy >= 25 && c.cooldown <= 0) {
                     c.energy -= 25;
+                    currentStats.use += 25;
                     c.cooldown = 15; // 0.25秒CD (加速消耗防止过载)
                     spawnParticle(x, y, c.rotation);
                 }
@@ -369,8 +420,10 @@ function updatePhysics() {
                     // 加速
                     if(c.energy >= 25) {
                         c.energy -= 25;
+                        currentStats.use += 25;
                         p.speed += 0.5;
                         p.charged = true;
+                        if(window.AudioSystem) window.AudioSystem.playSFX('boost');
                     }
                 } else if (c.type === 'emitter' && p.dir === c.rotation) {
                     // 得分
@@ -379,6 +432,7 @@ function updatePhysics() {
                     particles.splice(i, 1);
                     // 特效
                     effects.push({x:p.x, y:p.y, life:1, color:'#fbbf24'});
+                    if(window.AudioSystem) window.AudioSystem.playSFX('score');
                     continue;
                 }
             } else {
@@ -390,6 +444,7 @@ function updatePhysics() {
 }
 
 function explode(x, y) {
+    if(window.AudioSystem) window.AudioSystem.playSFX('explode');
     grid[y][x] = null; // 移除元件
     effects.push({x, y, life:1, color:'#ef4444'});
     // 震动
@@ -398,6 +453,7 @@ function explode(x, y) {
 }
 
 function spawnParticle(x, y, dir) {
+    if(window.AudioSystem) window.AudioSystem.playSFX('spawn');
     particles.push({x, y, dir, progress:0, speed:1, charged:false});
 }
 
@@ -677,7 +733,33 @@ function drawItem(x, y, c) {
 }
 
 // --- 工具函数 ---
+function updateStatsUI() {
+    const gen = currentStats.gen;
+    const use = currentStats.use;
+    const vent = currentStats.vent;
+
+    document.getElementById('stat-gen').innerText = '+' + gen.toFixed(1) + '/s';
+    document.getElementById('stat-use').innerText = '-' + use.toFixed(1) + '/s';
+    document.getElementById('stat-vent').innerText = '-' + vent.toFixed(1) + '/s';
+
+    let eff = 0;
+    if(gen > 0.1) {
+        eff = (use / gen) * 100;
+    } else if (use > 0) {
+        eff = 100; // 只有消耗没有生成，视为消耗库存，暂时定为100%有效
+    }
+
+    const elEff = document.getElementById('stat-eff');
+    elEff.innerText = eff.toFixed(0) + '%';
+
+    // Color coding
+    if(eff > 80) elEff.className = "font-mono font-bold text-green-400";
+    else if(eff > 40) elEff.className = "font-mono font-bold text-yellow-400";
+    else elEff.className = "font-mono font-bold text-red-400";
+}
+
 function selectTool(t, desc) {
+    if(window.AudioSystem) window.AudioSystem.playSFX('click');
     currentTool = t;
     document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
     document.getElementById('btn-'+t).classList.add('active');
@@ -685,6 +767,7 @@ function selectTool(t, desc) {
 }
 
 function toggleRun() {
+    if(window.AudioSystem) window.AudioSystem.playSFX('click');
     isRunning = !isRunning;
     const btn = document.getElementById('runBtn');
     if(isRunning) {
@@ -698,6 +781,7 @@ function toggleRun() {
 }
 
 function clearMap() {
+    if(window.AudioSystem) window.AudioSystem.playSFX('click');
     grid = grid.map(r => r.map(()=>null));
     particles = [];
     effects = [];
