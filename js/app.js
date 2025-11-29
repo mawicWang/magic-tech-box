@@ -325,6 +325,9 @@ function updatePhysics() {
             }
 
             // 传输能量 (Push Model)
+            // Maker 不输出能量，只消耗
+            if(c.type === 'maker') continue;
+
             const dir = DIRS[c.rotation];
             const tx = x + dir.x;
             const ty = y + dir.y;
@@ -415,9 +418,9 @@ function updatePhysics() {
             if(c) {
                 if(c.type === 'rail' && p.dir === c.rotation) {
                     // 加速
-                    if(c.energy >= 10) {
-                        c.energy -= 10;
-                        currentStats.use += 10;
+                    if(c.energy >= 25) {
+                        c.energy -= 25;
+                        currentStats.use += 25;
                         p.speed += 0.5;
                         p.charged = true;
                         if(window.AudioSystem) window.AudioSystem.playSFX('boost');
