@@ -11,17 +11,10 @@
 - **Canvas API**: 渲染引擎
 
 ## 文件结构 (File Structure)
-- `index.html`: 游戏入口点 (Entry point).
-- `css/`: 包含样式文件 (`style.css`).
-- `js/`: 包含游戏逻辑脚本.
-  - `config.js`: 常量配置.
-  - `state.js`: 全局状态管理.
-  - `main.js`: 初始化与主循环.
-  - `components/`: 绘制组件 (`drawing.js`).
-  - `systems/`: 核心系统 (`physics.js`, `input.js`, `renderer.js`).
+- `index.html`: 包含所有游戏逻辑、样式和标记的单文件应用。
 
 ## 开发指南 (Guidelines)
-1. **模块化结构 (Modular Structure)**: 项目已重构为模块化结构。所有 JavaScript 逻辑分布在 `js/` 目录下。保持逻辑分离 (UI, 物理, 渲染)。
+1. **单文件结构**: 保持 `index.html` 的完整性，除非另有说明，否则不要拆分 CSS 或 JS 文件，以便于携带和部署。
 2. **移动端适配**: 游戏设计为支持触摸操作，请确保 `touch-action: none` 等属性保留。
 3. **Canvas 渲染**: 使用 `pixelated` 渲染模式保持复古风格。
 
