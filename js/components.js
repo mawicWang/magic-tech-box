@@ -5,6 +5,7 @@ const COMPONENTS = {
         maxEnergy: 50,
         cost: 10,
         outputs: [0], // Front
+        inputs: [], // No inputs (Producer)
         iconHtml: '<div class="w-3 h-3 bg-green-500 shadow-[0_0_8px_#4ade80]"></div>',
         draw: (ctx, sz, c, ePct) => {
             // Pump shape
@@ -28,6 +29,7 @@ const COMPONENTS = {
         maxEnergy: 60,
         cost: 5,
         outputs: [0],
+        inputs: [1, 2, 3], // Sides and Back
         iconHtml: '<div class="w-6 h-0.5 bg-green-500"></div>',
         draw: (ctx, sz, c, ePct) => {
             const wireWidth = sz * 0.15;
@@ -52,6 +54,7 @@ const COMPONENTS = {
         maxEnergy: 300,
         cost: 20,
         outputs: [0],
+        inputs: [2], // Back only
         iconHtml: '<div class="w-3 h-4 border border-green-500"></div>',
         draw: (ctx, sz, c, ePct) => {
             // Battery stack
@@ -79,6 +82,7 @@ const COMPONENTS = {
         maxEnergy: 150,
         cost: 15,
         outputs: [0], // Still pushes forward if it has any left
+        inputs: [2],
         iconHtml: '<div class="flex gap-0.5"><div class="w-0.5 h-3 bg-slate-400"></div><div class="w-0.5 h-3 bg-slate-400"></div><div class="w-0.5 h-3 bg-slate-400"></div></div>',
         draw: (ctx, sz, c, ePct) => {
              // Fan/Grill
@@ -105,6 +109,7 @@ const COMPONENTS = {
         maxEnergy: 80,
         cost: 50,
         outputs: [], // Consumes only
+        inputs: [0, 1, 2, 3], // Accepts from all sides
         iconHtml: '<div class="w-3 h-3 rounded-full bg-white"></div>',
         draw: (ctx, sz, c, ePct) => {
             // Particle Accelerator Core
@@ -134,6 +139,7 @@ const COMPONENTS = {
         maxEnergy: 100,
         cost: 20,
         outputs: [0],
+        inputs: [2],
         iconHtml: '<div class="text-[10px] text-yellow-500 font-bold">>>></div>',
         draw: (ctx, sz, c, ePct) => {
              // Accelerator tracks (Chevron)
@@ -168,6 +174,7 @@ const COMPONENTS = {
         maxEnergy: 100,
         cost: 30,
         outputs: [0],
+        inputs: [2],
         iconHtml: '<div class="w-3 h-3 border border-yellow-500"></div>',
         draw: (ctx, sz, c, ePct) => {
              // Output Terminal
@@ -191,6 +198,7 @@ const COMPONENTS = {
         maxEnergy: 80,
         cost: 25,
         outputs: [0, 1, 3], // Front, Right, Left
+        inputs: [2], // Back
         iconHtml: '<div class="w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-b-[10px] border-b-purple-500"></div>',
         draw: (ctx, sz, c, ePct) => {
             // Triangle shape
@@ -222,6 +230,7 @@ const COMPONENTS = {
         maxEnergy: 200,
         cost: 5,
         outputs: [],
+        inputs: [],
         iconHtml: '<div class="w-4 h-4 border border-slate-500 bg-slate-700"></div>',
         draw: (ctx, sz, c, ePct) => {
             ctx.fillStyle = '#3f3f46'; // Zinc-700

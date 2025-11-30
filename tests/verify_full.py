@@ -30,7 +30,29 @@ def run_tests():
             browser.close()
             sys.exit(1)
 
-        # 2. Run E2E Gameplay Tests
+        # 2. Run Simulation Tests
+        print("\n--- Running Simulation Tests ---")
+        page = browser.new_page()
+        sim_test_path = f"file://{cwd}/tests/simulation_test.html"
+        page.goto(sim_test_path)
+
+        try:
+            page.wait_for_selector("#status", timeout=5000)
+            status = page.text_content("#status")
+            print(f"Simulation Test Status: {status}")
+
+            if "ALL PASSED" not in status:
+                print("Simulation tests failed!")
+                log_content = page.inner_html("#log")
+                print(f"Log content: {log_content}")
+                browser.close()
+                sys.exit(1)
+        except Exception as e:
+            print(f"Simulation test timeout or error: {e}")
+            browser.close()
+            sys.exit(1)
+
+        # 3. Run E2E Gameplay Tests
         print("\n--- Running E2E Gameplay Tests ---")
         page = browser.new_page()
         game_path = f"file://{cwd}/index.html"
@@ -58,8 +80,8 @@ def run_tests():
         page.wait_for_function("document.getElementById('main-menu').classList.contains('opacity-0')")
         print("Game Started (Menu Hidden).")
 
-        # Check Grid Initialized
-        grid_len = page.evaluate("grid.length")
+        # Check Grid Initialized (Access engine.grid)
+        grid_len = page.evaluate("engine.grid.length")
         print(f"Grid Size: {grid_len}")
         if grid_len != 10:
              print("Grid size incorrect!")
@@ -71,19 +93,11 @@ def run_tests():
         tool_name = page.text_content("#tool-name")
         print(f"Selected Tool: {tool_name}")
 
-        if "三个方向" not in tool_name and "Prism" not in tool_name:
+        if "分流" not in tool_name and "Prism" not in tool_name:
              print(f"Warning: Prism description mismatch? '{tool_name}'")
 
         # Place at 5,5
         print("Placing Prism at 5,5...")
-        # Calculate click position (approximate)
-        # We can simulate logic call directly or click canvas
-        # Let's click canvas.
-        # Need to know where 5,5 is.
-        # TILE_SIZE is dynamic.
-
-        # Easier: Call handleInput directly or mock it?
-        # Let's use mouse click.
 
         # Get Canvas Box
         box = page.locator("#mainCanvas").bounding_box()
@@ -94,7 +108,7 @@ def run_tests():
         page.mouse.click(click_x, click_y)
 
         # Verify placement in grid
-        cell_type = page.evaluate("grid[5][5] ? grid[5][5].type : 'null'")
+        cell_type = page.evaluate("engine.grid[5][5] ? engine.grid[5][5].type : 'null'")
         print(f"Cell at 5,5: {cell_type}")
 
         if cell_type != 'prism':
