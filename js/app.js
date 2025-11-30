@@ -39,6 +39,7 @@ let inputState = {
 
 function init() {
     setupMenu();
+    initToolbar();
     window.addEventListener('resize', handleResize);
     handleResize();
 
@@ -47,6 +48,56 @@ function init() {
 
     // 默认不开始，显示菜单
     renderMenuBackground();
+}
+
+function initToolbar() {
+    const container = document.getElementById('toolbar-container');
+    container.innerHTML = '';
+
+    let index = 1;
+    for (const key in COMPONENTS) {
+        const def = COMPONENTS[key];
+        const btn = document.createElement('button');
+        btn.onclick = () => selectTool(key, def.name + ': ' + def.desc);
+        btn.id = 'btn-' + key;
+        btn.className = "tool-btn flex-none w-14 h-14 rounded flex flex-col items-center justify-center gap-1 transition hover:bg-slate-800";
+        if (key === currentTool) btn.classList.add('active');
+
+        btn.innerHTML = `
+            ${def.iconHtml || '<div class="w-3 h-3 bg-slate-500"></div>'}
+            <span class="text-[9px] text-slate-300">${def.name.slice(0, 4)} [${index}]</span>
+        `;
+        container.appendChild(btn);
+        index++;
+    }
+
+    // Divider
+    const div = document.createElement('div');
+    div.className = "w-px h-8 bg-slate-700 mx-1";
+    container.appendChild(div);
+
+    // Eraser
+    const eraserBtn = document.createElement('button');
+    eraserBtn.onclick = () => selectTool('eraser', '拆除元件');
+    eraserBtn.id = 'btn-eraser';
+    eraserBtn.className = "tool-btn flex-none w-14 h-14 rounded flex flex-col items-center justify-center gap-1 text-red-500 hover:bg-slate-800";
+    eraserBtn.innerHTML = `
+        <span class="text-xl font-bold">× [X]</span>
+    `;
+    container.appendChild(eraserBtn);
+
+    // Spacer
+    const spacer = document.createElement('div');
+    spacer.className = "w-4 flex-none";
+    container.appendChild(spacer);
+}
+
+function returnToMenu() {
+    gameState = 'MENU';
+    isRunning = false;
+    document.getElementById('main-menu').classList.remove('opacity-0', 'pointer-events-none');
+    document.getElementById('runBtn').classList.add('bg-slate-800', 'border-green-500');
+    document.getElementById('runBtn').classList.remove('bg-red-900', 'border-red-500');
 }
 
 function setupMenu() {
@@ -252,7 +303,7 @@ function handleKeyDown(e) {
     const key = e.key.toLowerCase();
 
     if(key >= '1' && key <= '9') {
-        const tools = ['extractor', 'wire', 'battery', 'vent', 'maker', 'rail', 'emitter', 'prism', 'wall'];
+        const tools = Object.keys(COMPONENTS);
         const idx = parseInt(key) - 1;
         if(idx < tools.length) {
             const t = tools[idx];
@@ -491,6 +542,8 @@ function render() {
         ctx.strokeRect(inputState.gx*TILE_SIZE + 2, inputState.gy*TILE_SIZE+2, TILE_SIZE-4, TILE_SIZE-4);
     }
 
+    drawConnections();
+
     for(let y=0; y<GRID_SIZE; y++) {
         for(let x=0; x<GRID_SIZE; x++) {
             if(grid[y][x]) drawItem(x, y, grid[y][x]);
@@ -533,6 +586,47 @@ function render() {
     }
 }
 
+function drawConnections() {
+    ctx.lineWidth = Math.max(1, TILE_SIZE * 0.1);
+
+    for(let y=0; y<GRID_SIZE; y++) {
+        for(let x=0; x<GRID_SIZE; x++) {
+            const c = grid[y][x];
+            if(!c) continue;
+            const def = COMPONENTS[c.type];
+            if(!def || !def.outputs || def.outputs.length === 0) continue;
+
+            const cx = (x + 0.5) * TILE_SIZE;
+            const cy = (y + 0.5) * TILE_SIZE;
+
+            def.outputs.forEach(outDir => {
+                const absDir = (c.rotation + outDir) % 4;
+                const dir = DIRS[absDir];
+
+                // Draw from center to edge of the tile
+                const ex = cx + dir.x * TILE_SIZE * 0.5;
+                const ey = cy + dir.y * TILE_SIZE * 0.5;
+
+                ctx.strokeStyle = (c.energy > 1) ? '#4ade80' : '#059669';
+
+                ctx.beginPath();
+                ctx.moveTo(cx, cy);
+
+                const tx = x + dir.x;
+                const ty = y + dir.y;
+                if(tx>=0 && tx<GRID_SIZE && ty>=0 && ty<GRID_SIZE && grid[ty][tx] && grid[ty][tx].type !== 'wall') {
+                     const txCenter = (tx + 0.5) * TILE_SIZE;
+                     const tyCenter = (ty + 0.5) * TILE_SIZE;
+                     ctx.lineTo(txCenter, tyCenter);
+                } else {
+                     ctx.lineTo(ex, ey);
+                }
+                ctx.stroke();
+            });
+        }
+    }
+}
+
 function drawItem(x, y, c) {
     const cx = (x + 0.5) * TILE_SIZE;
     const cy = (y + 0.5) * TILE_SIZE;
@@ -554,11 +648,6 @@ function drawItem(x, y, c) {
         ctx.fill();
         ctx.globalAlpha = 1;
     }
-
-    // Wires (Bottom Layer) - Visualize connections
-    // Note: We can simplify this visual logic or keep it.
-    // Let's keep a simplified version that just draws connections based on 'outputs' of neighbors?
-    // Or just rely on the component's internal draw.
 
     // Rotate entire component
     ctx.rotate(c.rotation * Math.PI / 2);
