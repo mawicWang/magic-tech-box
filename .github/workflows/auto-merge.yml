@@ -1,0 +1,23 @@
+name: Auto-merge Jules PRs
+
+on:
+  pull_request:
+    types: [opened, reopened, ready_for_review]
+
+jobs:
+  enable-auto-merge:
+    runs-on: ubuntu-latest
+    # Jules actual GitHub username AND not a draft
+    if: github.actor == 'google-labs-jules[bot]' && github.event.pull_request.draft == false
+    permissions:
+      pull-requests: write
+      contents: write
+    steps:
+      - name: Enable auto-merge for Jules
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # 使用 GitHub CLI 开启自动合并
+          # --auto 表示等待 check 通过后合并
+          # --merge 表示使用普通合并 (也可以选 --squash 或 --rebase)
+          gh pr merge ${{ github.event.pull_request.html_url }} --auto --merge
