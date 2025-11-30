@@ -319,15 +319,15 @@ function handleKeyDown(e) {
 
 // --- 游戏循环 ---
 function gameLoop(timestamp) {
+    if(gameState !== 'PLAYING') return;
+
     const dt = timestamp - lastTime;
     lastTime = timestamp;
 
-    if(gameState === 'PLAYING') {
-        if(isRunning) {
-            updatePhysics();
-        }
-        render();
+    if(isRunning) {
+        updatePhysics();
     }
+    render();
 
     requestAnimationFrame(gameLoop);
 }
