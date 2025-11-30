@@ -35,6 +35,17 @@ let inputState = {
     startX: -1, startY: -1 // 按下的起始坐标
 };
 
+let dragState = {
+    active: false,
+    type: null,
+    fromGrid: false,
+    originalX: -1,
+    originalY: -1,
+    data: null,
+    dragX: 0,
+    dragY: 0
+};
+
 // --- 初始化与菜单 ---
 
 function init() {
@@ -58,9 +69,14 @@ function initToolbar() {
     for (const key in COMPONENTS) {
         const def = COMPONENTS[key];
         const btn = document.createElement('button');
-        btn.onclick = () => selectTool(key, def.name + ': ' + def.desc);
+
+        btn.onpointerdown = (e) => {
+            selectTool(key, def.name + ': ' + def.desc);
+            startDrag(key, false, -1, -1, e.clientX, e.clientY);
+        };
+
         btn.id = 'btn-' + key;
-        btn.className = "tool-btn flex-none w-14 h-14 rounded flex flex-col items-center justify-center gap-1 transition hover:bg-slate-800";
+        btn.className = "tool-btn flex-none w-14 h-14 rounded flex flex-col items-center justify-center gap-1 transition hover:bg-slate-800 select-none touch-none";
         if (key === currentTool) btn.classList.add('active');
 
         btn.innerHTML = `
@@ -210,91 +226,127 @@ function drawAmbientBg() {
 }
 
 // --- 交互逻辑 ---
+function startDrag(type, fromGrid, ox, oy, clientX, clientY) {
+    if (window.AudioSystem && !window.AudioSystem.initialized) {
+        window.AudioSystem.init();
+    }
+
+    dragState.active = true;
+    dragState.type = type;
+    dragState.fromGrid = fromGrid;
+    dragState.originalX = ox;
+    dragState.originalY = oy;
+    dragState.dragX = clientX;
+    dragState.dragY = clientY;
+
+    if (fromGrid) {
+        dragState.data = grid[oy][ox];
+        grid[oy][ox] = null;
+        if(window.AudioSystem) window.AudioSystem.playSFX('click');
+    } else {
+        const def = COMPONENTS[type];
+        dragState.data = {
+            type: type,
+            rotation: 1,
+            energy: 0,
+            maxEnergy: def.maxEnergy,
+            cooldown: 0
+        };
+    }
+}
+
+window.addEventListener('pointermove', e => {
+    if(dragState.active) {
+        dragState.dragX = e.clientX;
+        dragState.dragY = e.clientY;
+        e.preventDefault();
+        return;
+    }
+
+    if(gameState === 'PLAYING' && inputState.isDown && currentTool === 'eraser') {
+        handleEraser(e.clientX, e.clientY);
+    }
+});
+
+window.addEventListener('pointerup', e => {
+    if(dragState.active) {
+        endDrag(e);
+        dragState.active = false;
+        e.preventDefault();
+    }
+    inputState.isDown = false;
+});
+
+function endDrag(e) {
+    updateRect();
+    const relX = e.clientX - canvasRect.left;
+    const relY = e.clientY - canvasRect.top;
+    const x = Math.floor(relX / TILE_SIZE);
+    const y = Math.floor(relY / TILE_SIZE);
+
+    let placed = false;
+
+    if(x >= 0 && x < GRID_SIZE && y >= 0 && y < GRID_SIZE) {
+        if(dragState.fromGrid && x === dragState.originalX && y === dragState.originalY) {
+            dragState.data.rotation = (dragState.data.rotation + 1) % 4;
+            grid[y][x] = dragState.data;
+            if(window.AudioSystem) window.AudioSystem.playSFX('rotate');
+            placed = true;
+        } else if (grid[y][x] === null) {
+            grid[y][x] = dragState.data;
+            if(window.AudioSystem) window.AudioSystem.playSFX('place');
+            placed = true;
+        }
+    }
+
+    if(!placed) {
+        if(dragState.fromGrid) {
+            grid[dragState.originalY][dragState.originalX] = dragState.data;
+        }
+    }
+
+    dragState.data = null;
+}
+
 mainCanvas.addEventListener('pointerdown', e => {
     if(gameState !== 'PLAYING') return;
     e.preventDefault();
     updateRect();
-    mainCanvas.setPointerCapture(e.pointerId);
 
     if (window.AudioSystem && !window.AudioSystem.initialized) {
         window.AudioSystem.init();
     }
 
-    inputState.isDown = true;
-    handleInput(e.clientX, e.clientY, true);
-});
-
-mainCanvas.addEventListener('pointermove', e => {
-    if(gameState !== 'PLAYING') return;
-    e.preventDefault();
-    if(!inputState.isDown) return;
-    handleInput(e.clientX, e.clientY, false);
-});
-
-const endInput = (e) => {
-    inputState.isDown = false;
-    inputState.gx = -1;
-    inputState.gy = -1;
-    inputState.startX = -1;
-};
-mainCanvas.addEventListener('pointerup', endInput);
-mainCanvas.addEventListener('pointercancel', endInput);
-
-function handleInput(clientX, clientY, isStart) {
-    const relX = clientX - canvasRect.left;
-    const relY = clientY - canvasRect.top;
+    const relX = e.clientX - canvasRect.left;
+    const relY = e.clientY - canvasRect.top;
     const x = Math.floor(relX / TILE_SIZE);
     const y = Math.floor(relY / TILE_SIZE);
 
     if(x < 0 || x >= GRID_SIZE || y < 0 || y >= GRID_SIZE) return;
 
-    inputState.gx = x;
-    inputState.gy = y;
-
-    if(!isStart && x === inputState.startX && y === inputState.startY) return;
-
-    inputState.startX = x;
-    inputState.startY = y;
-
-    applyTool(x, y, isStart);
-}
-
-function applyTool(x, y, isClick) {
-    const cell = grid[y][x];
-
-    if(currentTool === 'eraser') {
-        if(grid[y][x]) {
-            grid[y][x] = null;
-            if(window.AudioSystem) window.AudioSystem.playSFX('delete');
-        }
-        return;
-    }
-
-    if(cell) {
-        if(isClick && cell.type === currentTool) {
-            cell.rotation = (cell.rotation + 1) % 4;
-            if(window.AudioSystem) window.AudioSystem.playSFX('rotate');
-        } else if (isClick && cell.type !== currentTool) {
-            placeComponent(x, y);
-        }
+    if (currentTool === 'eraser') {
+        inputState.isDown = true;
+        handleEraser(e.clientX, e.clientY);
     } else {
-        placeComponent(x, y);
+        if (grid[y][x]) {
+            startDrag(grid[y][x].type, true, x, y, e.clientX, e.clientY);
+        } else if (currentTool && currentTool !== 'eraser') {
+            startDrag(currentTool, false, -1, -1, e.clientX, e.clientY);
+        }
     }
-}
+});
 
-function placeComponent(x, y) {
-    if(window.AudioSystem) window.AudioSystem.playSFX('place');
+function handleEraser(clientX, clientY) {
+    updateRect();
+    const relX = clientX - canvasRect.left;
+    const relY = clientY - canvasRect.top;
+    const x = Math.floor(relX / TILE_SIZE);
+    const y = Math.floor(relY / TILE_SIZE);
 
-    const def = COMPONENTS[currentTool];
-    if(!def) return;
-
-    grid[y][x] = {
-        type: currentTool,
-        rotation: 1,
-        energy: 0,
-        maxEnergy: def.maxEnergy,
-        cooldown: 0
-    };
+    if(x >= 0 && x < GRID_SIZE && y >= 0 && y < GRID_SIZE && grid[y][x]) {
+        grid[y][x] = null;
+        if(window.AudioSystem) window.AudioSystem.playSFX('delete');
+    }
 }
 
 function handleKeyDown(e) {
@@ -536,18 +588,28 @@ function render() {
     }
     ctx.stroke();
 
-    if(inputState.isDown && inputState.gx >= 0) {
-        ctx.strokeStyle = '#fff';
-        ctx.lineWidth = 2;
-        ctx.strokeRect(inputState.gx*TILE_SIZE + 2, inputState.gy*TILE_SIZE+2, TILE_SIZE-4, TILE_SIZE-4);
-    }
-
     drawConnections();
 
     for(let y=0; y<GRID_SIZE; y++) {
         for(let x=0; x<GRID_SIZE; x++) {
             if(grid[y][x]) drawItem(x, y, grid[y][x]);
         }
+    }
+
+    if(dragState.active && dragState.data) {
+        const rect = mainCanvas.getBoundingClientRect();
+        const rX = dragState.dragX - rect.left;
+        const rY = dragState.dragY - rect.top;
+
+        ctx.save();
+        ctx.globalAlpha = 0.5;
+
+        const floatX = (rX / TILE_SIZE) - 0.5;
+        const floatY = (rY / TILE_SIZE) - 0.5;
+
+        drawItem(floatX, floatY, dragState.data);
+
+        ctx.restore();
     }
 
     particles.forEach(p => {

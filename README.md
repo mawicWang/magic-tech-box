@@ -11,6 +11,7 @@ A puzzle game where you play as an Aether Engineer, managing high-energy magic f
 
 ## Key Features
 - **Component System**: Standardized, configurable components including Extractors, Wires, Capacitors, Vents, Makers, Rails, Prisms, and Walls.
+- **Drag-and-Drop Interface**: Intuitive placement and rearrangement of components directly from the toolbar or within the grid.
 - **Level System**: Progression from tutorials to complex challenges.
 - **Main Menu**: Select levels and track progress.
 - **Real-time Simulation**: Energy flow, heat management, and particle physics.
