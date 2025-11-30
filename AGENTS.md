@@ -13,7 +13,9 @@
 ## 文件结构 (File Structure)
 - `index.html`: 游戏入口 (HTML)。
 - `css/style.css`: 游戏样式。
-- `js/app.js`: 游戏逻辑。
+- `js/app.js`: 游戏主循环与UI逻辑。
+- `js/engine.js`: 核心物理与模拟引擎。
+- `tests/`: 自动化测试用例。
 
 ## 开发指南 (Guidelines)
 1. **模块化结构**: 项目已重构为分离的 HTML/CSS/JS 结构。

@@ -18,9 +18,10 @@ A puzzle game where you play as an Aether Engineer, managing high-energy magic f
 - **Responsive Design**: Mobile-friendly interface with touch controls.
 
 ## Development
-- **Architecture**: Modularized into `constants.js`, `components.js`, `levels.js`, and `app.js`.
+- **Architecture**: Modularized into `constants.js`, `components.js`, `levels.js`, `engine.js` (simulation logic), and `app.js` (UI/Loop).
 - **Testing**:
     - **Unit Tests**: Browser-based tests for logic validation (`tests/unit_test.html`).
+    - **Simulation Tests**: Headless simulation verification (`tests/simulation_test.html`).
     - **E2E Tests**: Playwright-based automated verification (`tests/verify_full.py`).
     - **Run Tests**: Execute `tests/run_tests.sh` to run the full suite.
 

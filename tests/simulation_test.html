@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Simulation Tests</title>
+</head>
+<body>
+    <div id="log">Running Simulation Tests...</div>
+
+    <!-- Mocks -->
+    <script>
+        window.AudioSystem = {
+            playSFX: () => {},
+            init: () => {}
+        };
+    </script>
+
+    <!-- Load Game Scripts -->
+    <script src="../js/constants.js"></script>
+    <script src="../js/components.js"></script>
+    <script src="../js/levels.js"></script>
+    <script src="../js/engine.js"></script>
+
+    <!-- Test Script -->
+    <script src="simulation_test.js"></script>
+</body>
+</html>

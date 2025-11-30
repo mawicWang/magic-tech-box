@@ -2,21 +2,17 @@
  * 核心逻辑: Magitech Engine v5.0 (Standardized)
  */
 
-// --- 全局状态 ---
-let grid = []; // 游戏网格数据
-let ambientMap = []; // 环境能量分布
-let particles = []; // 粒子系统
-let effects = []; // 爆炸特效
+// --- 游戏引擎实例 ---
+// Assumes js/engine.js is loaded
+const engine = new GameEngine();
 
-// 统计数据
-let currentStats = { gen:0, use:0, vent:0 };
-let statTimer = 0;
-
+// --- 全局 UI 状态 ---
 let currentTool = 'extractor';
 let isRunning = false;
 let score = 0;
 let lastTime = 0;
 let gameState = 'MENU'; // MENU, PLAYING
+let statTimer = 0;
 
 // 渲染相关
 const container = document.getElementById('game-container');
@@ -56,6 +52,16 @@ function init() {
 
     // 键盘快捷键
     window.addEventListener('keydown', handleKeyDown);
+
+    // Engine Callbacks
+    engine.onScore = (points) => {
+        score += points;
+        document.getElementById('score-display').innerText = score;
+    };
+    engine.onExplode = () => {
+        container.classList.add('shaking');
+        setTimeout(()=>container.classList.remove('shaking'), 400);
+    };
 
     // 默认不开始，显示菜单
     renderMenuBackground();
@@ -139,36 +145,17 @@ function startGame(levelId) {
     // Hide Menu
     document.getElementById('main-menu').classList.add('opacity-0', 'pointer-events-none');
     gameState = 'PLAYING';
-
-    // Initialize Grid
-    grid = [];
-    ambientMap = [];
-    particles = [];
-    effects = [];
     score = 0;
     isRunning = true;
 
-    // Reset Grid
-    for(let y=0; y<GRID_SIZE; y++) {
-        grid[y] = Array(GRID_SIZE).fill(null);
-        ambientMap[y] = [];
-        for(let x=0; x<GRID_SIZE; x++) {
-            // Default noise
-            const noise = Math.sin(x*0.4) + Math.cos(y*0.4) + Math.random()*0.5;
-            let energy = Math.max(0, Math.min(100, (noise + 2) * 25));
-            ambientMap[y][x] = energy;
-        }
-    }
-
-    // Load Level Data
+    // Load Level Data via Engine
     const level = LEVELS[levelId];
-    if(level && level.setup) {
-        level.setup(grid, ambientMap);
-    }
+    engine.setupLevel(level ? level.setup : null);
 
     // Reset UI
     document.getElementById('runBtn').classList.add('bg-red-900', 'border-red-500');
     document.getElementById('runBtn').classList.remove('bg-slate-800');
+    document.getElementById('score-display').innerText = score;
 
     selectTool('extractor', '抽取泵: 放置在高亮区域');
     handleResize(); // Redraw BG
@@ -213,7 +200,7 @@ function drawAmbientBg() {
     bgCtx.clearRect(0,0, bgCanvas.width, bgCanvas.height);
     for(let y=0; y<GRID_SIZE; y++) {
         for(let x=0; x<GRID_SIZE; x++) {
-            const e = ambientMap[y][x];
+            const e = engine.ambientMap[y][x];
             bgCtx.fillStyle = `rgba(30, 64, 175, ${e / 150})`;
             bgCtx.fillRect(x*TILE_SIZE, y*TILE_SIZE, TILE_SIZE, TILE_SIZE);
 
@@ -240,8 +227,8 @@ function startDrag(type, fromGrid, ox, oy, clientX, clientY) {
     dragState.dragY = clientY;
 
     if (fromGrid) {
-        dragState.data = grid[oy][ox];
-        grid[oy][ox] = null;
+        dragState.data = engine.grid[oy][ox];
+        engine.grid[oy][ox] = null;
         if(window.AudioSystem) window.AudioSystem.playSFX('click');
     } else {
         const def = COMPONENTS[type];
@@ -289,11 +276,11 @@ function endDrag(e) {
     if(x >= 0 && x < GRID_SIZE && y >= 0 && y < GRID_SIZE) {
         if(dragState.fromGrid && x === dragState.originalX && y === dragState.originalY) {
             dragState.data.rotation = (dragState.data.rotation + 1) % 4;
-            grid[y][x] = dragState.data;
+            engine.grid[y][x] = dragState.data;
             if(window.AudioSystem) window.AudioSystem.playSFX('rotate');
             placed = true;
-        } else if (grid[y][x] === null) {
-            grid[y][x] = dragState.data;
+        } else if (engine.grid[y][x] === null) {
+            engine.grid[y][x] = dragState.data;
             if(window.AudioSystem) window.AudioSystem.playSFX('place');
             placed = true;
         }
@@ -301,7 +288,7 @@ function endDrag(e) {
 
     if(!placed) {
         if(dragState.fromGrid) {
-            grid[dragState.originalY][dragState.originalX] = dragState.data;
+            engine.grid[dragState.originalY][dragState.originalX] = dragState.data;
         }
     }
 
@@ -328,8 +315,8 @@ mainCanvas.addEventListener('pointerdown', e => {
         inputState.isDown = true;
         handleEraser(e.clientX, e.clientY);
     } else {
-        if (grid[y][x]) {
-            startDrag(grid[y][x].type, true, x, y, e.clientX, e.clientY);
+        if (engine.grid[y][x]) {
+            startDrag(engine.grid[y][x].type, true, x, y, e.clientX, e.clientY);
         } else if (currentTool && currentTool !== 'eraser') {
             startDrag(currentTool, false, -1, -1, e.clientX, e.clientY);
         }
@@ -343,8 +330,8 @@ function handleEraser(clientX, clientY) {
     const x = Math.floor(relX / TILE_SIZE);
     const y = Math.floor(relY / TILE_SIZE);
 
-    if(x >= 0 && x < GRID_SIZE && y >= 0 && y < GRID_SIZE && grid[y][x]) {
-        grid[y][x] = null;
+    if(x >= 0 && x < GRID_SIZE && y >= 0 && y < GRID_SIZE && engine.grid[y][x]) {
+        engine.grid[y][x] = null;
         if(window.AudioSystem) window.AudioSystem.playSFX('delete');
     }
 }
@@ -377,202 +364,34 @@ function gameLoop(timestamp) {
     lastTime = timestamp;
 
     if(isRunning) {
-        updatePhysics();
+        engine.update();
+
+        // Check danger (simplified from previous logic, checking if any effect is 'explode' type or just iterate grid)
+        // Engine handles explosions, but we need danger level for UI overlay.
+        let dangerLevel = 0;
+        for(let y=0; y<GRID_SIZE; y++) {
+            for(let x=0; x<GRID_SIZE; x++) {
+                const c = engine.grid[y][x];
+                if(c && c.energy > c.maxEnergy) dangerLevel++;
+            }
+        }
+
+        const alertLayer = document.getElementById('alert-layer');
+        if(dangerLevel > 0) alertLayer.className = "absolute inset-0 pointer-events-none z-30 bg-red-500/10 animate-pulse";
+        else alertLayer.className = "absolute inset-0 pointer-events-none z-30";
+
+        // Stats UI
+        statTimer++;
+        if(statTimer >= 60) {
+            updateStatsUI();
+            statTimer = 0;
+            engine.currentStats = { gen:0, use:0, vent:0 };
+        }
     }
+
     render();
 
     requestAnimationFrame(gameLoop);
-}
-
-// --- 物理引擎 ---
-const DIRS = [{x:0,y:-1}, {x:1,y:0}, {x:0,y:1}, {x:-1,y:0}];
-
-function updatePhysics() {
-    let changes = Array(GRID_SIZE).fill(0).map(()=>Array(GRID_SIZE).fill(0));
-    let dangerLevel = 0;
-
-    for(let y=0; y<GRID_SIZE; y++) {
-        for(let x=0; x<GRID_SIZE; x++) {
-            const c = grid[y][x];
-            if(!c) continue;
-
-            const def = COMPONENTS[c.type];
-
-            // 生产能量
-            if(c.type === 'extractor') {
-                const ambient = ambientMap[y][x];
-                if(c.energy < c.maxEnergy) {
-                    let amount = (ambient / 100) * 1.5;
-                    c.energy += amount;
-                    currentStats.gen += amount;
-                }
-            }
-
-            // 消耗能量
-            if(c.type === 'vent') {
-                let lost = c.energy * 0.2;
-                c.energy *= 0.8;
-                currentStats.vent += lost;
-            }
-
-            // 传输能量 (Push Model - Standardized)
-            // Maker consumes internally, doesn't output.
-            if(def.outputs && def.outputs.length > 0) {
-                 const transferSpeed = (c.type === 'battery') ? ENERGY_TRANSFER_SPEED * 0.5 : ENERGY_TRANSFER_SPEED;
-
-                 const availableEnergy = Math.min(c.energy, transferSpeed);
-
-                 if (availableEnergy > 0.1) {
-                     let validTargets = [];
-
-                     def.outputs.forEach(outDir => {
-                         const absDir = (c.rotation + outDir) % 4;
-                         const dir = DIRS[absDir];
-                         const tx = x + dir.x;
-                         const ty = y + dir.y;
-                         if(tx>=0 && tx<GRID_SIZE && ty>=0 && ty<GRID_SIZE) {
-                             const target = grid[ty][tx];
-                             // Components that can receive energy? (Basically anything except maybe walls?)
-                             // Even walls might exist, but we should define if they conduct.
-                             // Currently walls have empty outputs, but receiving is implicit in being a grid neighbor.
-                             // BUT, we usually only push to things that "connect" or at least exist.
-                             if(target && target.type !== 'wall') validTargets.push({x:tx, y:ty});
-                         }
-                     });
-
-                     if (validTargets.length > 0) {
-                         const amountPerTarget = availableEnergy / validTargets.length;
-                         // Check if we actually have that much energy (double check float issues)
-                         let totalDeduced = 0;
-
-                         validTargets.forEach(t => {
-                             if(c.energy >= amountPerTarget) {
-                                 c.energy -= amountPerTarget;
-                                 changes[t.y][t.x] += amountPerTarget;
-                             }
-                         });
-                     }
-                 }
-            }
-        }
-    }
-
-    // 应用能量变化 & 检查过载
-    for(let y=0; y<GRID_SIZE; y++) {
-        for(let x=0; x<GRID_SIZE; x++) {
-            const c = grid[y][x];
-            if(!c) continue;
-
-            c.energy += changes[y][x];
-
-            // 过载判定
-            if(c.energy > c.maxEnergy) {
-                dangerLevel++;
-                if(c.energy > c.maxEnergy + 50) {
-                    explode(x, y);
-                }
-            }
-        }
-    }
-
-    // 警告UI
-    const alertLayer = document.getElementById('alert-layer');
-    if(dangerLevel > 0) alertLayer.className = "absolute inset-0 pointer-events-none z-30 bg-red-500/10 animate-pulse";
-    else alertLayer.className = "absolute inset-0 pointer-events-none z-30";
-
-    // 更新统计 UI
-    statTimer++;
-    if(statTimer >= 60) {
-        updateStatsUI();
-        statTimer = 0;
-        currentStats = { gen:0, use:0, vent:0 };
-    }
-
-    // 2. 粒子模拟
-    updateParticles();
-}
-
-function updateParticles() {
-    // 生成
-    for(let y=0; y<GRID_SIZE; y++) {
-        for(let x=0; x<GRID_SIZE; x++) {
-            const c = grid[y][x];
-            if(c && c.type === 'maker') {
-                c.cooldown--;
-                if(c.energy >= 25 && c.cooldown <= 0) {
-                    c.energy -= 25;
-                    currentStats.use += 25;
-                    c.cooldown = 15;
-                    spawnParticle(x, y, c.rotation);
-                }
-            }
-        }
-    }
-
-    // 移动
-    for(let i=particles.length-1; i>=0; i--) {
-        const p = particles[i];
-        p.progress += 0.05 * p.speed;
-
-        if(p.progress >= 1) {
-            p.progress = 0;
-            const dir = DIRS[p.dir];
-            p.x += dir.x;
-            p.y += dir.y;
-
-            if(p.x < 0 || p.x >= GRID_SIZE || p.y < 0 || p.y >= GRID_SIZE) {
-                particles.splice(i, 1);
-                continue;
-            }
-
-            const c = grid[p.y][p.x];
-            if(c) {
-                if(c.type === 'rail' && p.dir === c.rotation) {
-                    // 加速
-                    if(c.energy >= 25) {
-                        c.energy -= 25;
-                        currentStats.use += 25;
-                        p.speed += 0.5;
-                        p.charged = true;
-                        if(window.AudioSystem) window.AudioSystem.playSFX('boost');
-                    }
-                } else if (c.type === 'emitter' && p.dir === c.rotation) {
-                    // 得分
-                    score += Math.floor(10 * p.speed);
-                    document.getElementById('score-display').innerText = score;
-                    particles.splice(i, 1);
-                    effects.push({x:p.x, y:p.y, life:1, color:'#fbbf24'});
-                    if(window.AudioSystem) window.AudioSystem.playSFX('score');
-                    continue;
-                } else if (c.type === 'wall' || c.type === 'maker' || c.type === 'extractor' || c.type === 'battery' || c.type === 'prism') {
-                    // 碰撞 (Simplified collision for now)
-                    particles.splice(i, 1);
-                }
-            } else {
-                // 撞墙消失 (Outside component area but inside grid - treated as empty space, particles fly over empty space?
-                // Logic says: if no component, it keeps flying?
-                // Original logic: "撞墙消失" (particles.splice(i, 1)) if c is null?
-                // Wait, original logic:
-                // if(c) { ... } else { particles.splice(i, 1); }
-                // So particles die on empty space?
-                // Let's keep that behavior.
-                 particles.splice(i, 1);
-            }
-        }
-    }
-}
-
-function explode(x, y) {
-    if(window.AudioSystem) window.AudioSystem.playSFX('explode');
-    grid[y][x] = null;
-    effects.push({x, y, life:1, color:'#ef4444'});
-    container.classList.add('shaking');
-    setTimeout(()=>container.classList.remove('shaking'), 400);
-}
-
-function spawnParticle(x, y, dir) {
-    if(window.AudioSystem) window.AudioSystem.playSFX('spawn');
-    particles.push({x, y, dir, progress:0, speed:1, charged:false});
 }
 
 // --- 渲染 ---
@@ -592,7 +411,7 @@ function render() {
 
     for(let y=0; y<GRID_SIZE; y++) {
         for(let x=0; x<GRID_SIZE; x++) {
-            if(grid[y][x]) drawItem(x, y, grid[y][x]);
+            if(engine.grid[y][x]) drawItem(x, y, engine.grid[y][x]);
         }
     }
 
@@ -612,7 +431,7 @@ function render() {
         ctx.restore();
     }
 
-    particles.forEach(p => {
+    engine.particles.forEach(p => {
         const dir = DIRS[p.dir];
         const px = (p.x + 0.5 + dir.x * p.progress) * TILE_SIZE;
         const py = (p.y + 0.5 + dir.y * p.progress) * TILE_SIZE;
@@ -630,13 +449,8 @@ function render() {
         }
     });
 
-    for(let i=effects.length-1; i>=0; i--) {
-        const e = effects[i];
-        e.life -= 0.05;
-        if(e.life <= 0) {
-            effects.splice(i, 1);
-            continue;
-        }
+    for(let i=engine.effects.length-1; i>=0; i--) {
+        const e = engine.effects[i];
         const cx = (e.x+0.5)*TILE_SIZE;
         const cy = (e.y+0.5)*TILE_SIZE;
         ctx.globalAlpha = e.life;
@@ -649,44 +463,50 @@ function render() {
 }
 
 function drawConnections() {
-    ctx.lineWidth = Math.max(1, TILE_SIZE * 0.1);
+    // 1. Structural Connections (Dark, Static)
+    // These represent "Valid Cabling" even if no energy flows
+    const connections = engine.getStructuralConnections();
 
-    for(let y=0; y<GRID_SIZE; y++) {
-        for(let x=0; x<GRID_SIZE; x++) {
-            const c = grid[y][x];
-            if(!c) continue;
-            const def = COMPONENTS[c.type];
-            if(!def || !def.outputs || def.outputs.length === 0) continue;
+    ctx.lineWidth = Math.max(2, TILE_SIZE * 0.1);
+    ctx.lineCap = 'round';
 
-            const cx = (x + 0.5) * TILE_SIZE;
-            const cy = (y + 0.5) * TILE_SIZE;
+    connections.forEach(conn => {
+        const sx = (conn.x + 0.5) * TILE_SIZE;
+        const sy = (conn.y + 0.5) * TILE_SIZE;
+        const tx = (conn.tx + 0.5) * TILE_SIZE;
+        const ty = (conn.ty + 0.5) * TILE_SIZE;
 
-            def.outputs.forEach(outDir => {
-                const absDir = (c.rotation + outDir) % 4;
-                const dir = DIRS[absDir];
+        ctx.strokeStyle = '#374151'; // Dark Grey (Grid lines +)
+        ctx.beginPath();
+        ctx.moveTo(sx, sy);
+        ctx.lineTo(tx, ty);
+        ctx.stroke();
+    });
 
-                // Draw from center to edge of the tile
-                const ex = cx + dir.x * TILE_SIZE * 0.5;
-                const ey = cy + dir.y * TILE_SIZE * 0.5;
+    // 2. Active Flow (Bright, Animated)
+    const time = Date.now() / 20; // Speed
+    ctx.lineDashOffset = -time;
+    ctx.setLineDash([TILE_SIZE * 0.2, TILE_SIZE * 0.2]);
 
-                ctx.strokeStyle = (c.energy > 1) ? '#4ade80' : '#059669';
+    engine.activeConnections.forEach(conn => {
+        const sx = (conn.x + 0.5) * TILE_SIZE;
+        const sy = (conn.y + 0.5) * TILE_SIZE;
+        const tx = (conn.tx + 0.5) * TILE_SIZE;
+        const ty = (conn.ty + 0.5) * TILE_SIZE;
 
-                ctx.beginPath();
-                ctx.moveTo(cx, cy);
+        // Color intensity based on amount?
+        // const intensity = Math.min(1, conn.amount * 2);
+        ctx.strokeStyle = '#4ade80'; // Bright Green
+        ctx.lineWidth = Math.max(2, TILE_SIZE * 0.08);
 
-                const tx = x + dir.x;
-                const ty = y + dir.y;
-                if(tx>=0 && tx<GRID_SIZE && ty>=0 && ty<GRID_SIZE && grid[ty][tx] && grid[ty][tx].type !== 'wall') {
-                     const txCenter = (tx + 0.5) * TILE_SIZE;
-                     const tyCenter = (ty + 0.5) * TILE_SIZE;
-                     ctx.lineTo(txCenter, tyCenter);
-                } else {
-                     ctx.lineTo(ex, ey);
-                }
-                ctx.stroke();
-            });
-        }
-    }
+        ctx.beginPath();
+        ctx.moveTo(sx, sy);
+        ctx.lineTo(tx, ty);
+        ctx.stroke();
+    });
+
+    // Reset Dash
+    ctx.setLineDash([]);
 }
 
 function drawItem(x, y, c) {
@@ -728,9 +548,9 @@ function drawItem(x, y, c) {
 
 // --- 工具函数 ---
 function updateStatsUI() {
-    const gen = currentStats.gen;
-    const use = currentStats.use;
-    const vent = currentStats.vent;
+    const gen = engine.currentStats.gen;
+    const use = engine.currentStats.use;
+    const vent = engine.currentStats.vent;
 
     document.getElementById('stat-gen').innerText = '+' + gen.toFixed(1) + '/s';
     document.getElementById('stat-use').innerText = '-' + use.toFixed(1) + '/s';
@@ -775,9 +595,7 @@ function toggleRun() {
 
 function clearMap() {
     if(window.AudioSystem) window.AudioSystem.playSFX('click');
-    grid = grid.map(r => r.map(()=>null));
-    particles = [];
-    effects = [];
+    engine.setupLevel(null);
     score = 0;
     isRunning = false;
     document.getElementById('runBtn').classList.remove('bg-red-900', 'border-red-500');
